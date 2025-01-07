@@ -19,8 +19,7 @@ export default function App() {
         <QueryProvider>
           <NavMenu>
             <a href="/" rel="home" />
-            <a href="/dashboard">{t("NavigationMenu.dashboard")}</a>
-            <a href="/order">{t("NavigationMenu.order")}</a>
+            <a href="/pagename">{t("NavigationMenu.pageName")}</a>
           </NavMenu>
           <Routes pages={pages} />
         </QueryProvider>
@@ -28,5 +27,3 @@ export default function App() {
     </PolarisProvider>
   );
 }
-
-
