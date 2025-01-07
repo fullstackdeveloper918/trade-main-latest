@@ -2,6 +2,8 @@ import React from "react";
 import "./table.css";
 
 const Table = ({ data = [], headData = [] }) => {
+    console.log("data", data);
+
   return (
     <>
       <table style={{ borderCollapse: "collapse" }} className="tablePadding">
