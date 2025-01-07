@@ -3,7 +3,7 @@ import { join } from "path";
 import { readFileSync } from "fs";
 import express from "express";
 import serveStatic from "serve-static";
-
+import cors from "cors";
 import shopify from "./shopify.js";
 import productCreator from "./product-creator.js";
 import PrivacyWebhookHandlers from "./privacy.js";
@@ -27,6 +27,7 @@ const STATIC_PATH =
 
 const app = express();
 
+app.use(cors());
 // Set up Shopify authentication and webhook handling
 app.get(shopify.config.auth.path, shopify.auth.begin());
 app.get(
