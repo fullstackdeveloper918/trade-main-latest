@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "e056932228b048ac37208711975fa2d7"
-application_url = "https://connecting-holland-adsl-stationery.trycloudflare.com"
+application_url = "https://trade-latest.onrender.com"
 embedded = true
 name = "trade-in-latest"
 handle = "trade-in-latest"
@@ -15,9 +15,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://connecting-holland-adsl-stationery.trycloudflare.com/auth/callback",
-  "https://connecting-holland-adsl-stationery.trycloudflare.com/auth/shopify/callback",
-  "https://connecting-holland-adsl-stationery.trycloudflare.com/api/auth/callback"
+  "https://trade-latest.onrender.com/auth/callback",
+  "https://trade-latest.onrender.com/auth/shopify/callback",
+  "https://trade-latest.onrender.com/api/auth/callback"
 ]
 
 [pos]
