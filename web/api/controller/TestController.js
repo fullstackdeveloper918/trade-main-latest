@@ -1119,22 +1119,12 @@ const getVariantidDetails = async (variantId) => {
     }
 };
 
-
-
-
-
-
-
-
-
-
-
 TestController.webhook1 = async (req, res) => {
     try {
 
          // Check if the store URL matches the specified one
-         if (req.headers['x-shopify-shop-domain'] !== 'rohit-cybersify.myshopify.com') {
-            console.log("Webhook received from an unauthorized store.");
+         if (req.headers['x-shopify-shop-domain'] !== '7f2756-2.myshopify.com' && req.headers['x-shopify-shop-domain']!="techable.com" ) {
+            console.log("Webhook received from an unauthorized store.",req.headers['x-shopify-shop-domain']);
             return res.status(403).json({ status: 403, message: 'Unauthorized store.' });
         }
         const orderData = req.body;
