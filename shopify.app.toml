@@ -1,0 +1,28 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "e056932228b048ac37208711975fa2d7"
+application_url = "https://connecting-holland-adsl-stationery.trycloudflare.com"
+embedded = true
+name = "trade-in-latest"
+handle = "trade-in-latest"
+
+[webhooks]
+api_version = "2025-01"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products"
+
+[auth]
+redirect_urls = [
+  "https://connecting-holland-adsl-stationery.trycloudflare.com/auth/callback",
+  "https://connecting-holland-adsl-stationery.trycloudflare.com/auth/shopify/callback",
+  "https://connecting-holland-adsl-stationery.trycloudflare.com/api/auth/callback"
+]
+
+[pos]
+embedded = false
+
+[build]
+dev_store_url = "rohit-cybersify.myshopify.com"
+automatically_update_urls_on_dev = true
