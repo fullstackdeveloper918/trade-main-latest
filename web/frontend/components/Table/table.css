@@ -1,0 +1,23 @@
+
+.tablePadding thead{
+    background: #454545 !important;
+    border-radius: 8px;
+    color: #fff !important;
+    border: 1px solid #454545;
+}
+
+.tablePadding th{
+    text-align: left;
+    padding: 10px;
+
+}
+.tablePadding{
+width: 98%;
+margin: 20px auto;
+border: 1px solid #ccc;
+}
+.tablePadding td{
+border-bottom: 1px solid #ccc;
+padding: 10px;
+}
+
