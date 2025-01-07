@@ -1,5 +1,5 @@
 import db_con from "../../db.js";
-import  axios from "axios";
+import axios from "axios";
 
 const DataController = {};
 
@@ -17,7 +17,7 @@ const getToken = async () => {
     });
 };
 
-const getProductDetails  = async (series_num ) => {
+const getProductDetails = async (series_num) => {
     return new Promise((resolve, reject) => {
         const query = `SELECT   * 
 
@@ -31,9 +31,9 @@ const getProductDetails  = async (series_num ) => {
                            
                          ) limit 1`;
 
-                const value = [series_num] ;        
-        
-        db_con.query(query, value , (err, result) => {
+        const value = [series_num];
+
+        db_con.query(query, value, (err, result) => {
             if (err) {
                 //console.error("SQL Error:", err.message);
                 return reject(new Error('Internal server error'));
@@ -47,16 +47,20 @@ const getProductDetails  = async (series_num ) => {
 DataController.index = async (req, res) => {
     try {
         let query;
-         let values = [];
- 
-         const { series, series_num, screen_size, release_year, processor_model ,network } = req.query;
-         const numericScreenSize = screen_size ? Number(screen_size) : null;
-         const numericReleaseYear = release_year ? Number(release_year) : null;
-         const lowerCaseSeries = series ? series.toLowerCase() : null;
-         let networkfi = network ? network: null;
-    
+        let values = [];
 
-         if (series && series_num && numericScreenSize && numericReleaseYear && processor_model || series && series_num && numericScreenSize && numericReleaseYear && networkfi ) {
+        const { series, series_num, screen_size, release_year, processor_model, network } = req.query;
+        const numericScreenSize = screen_size ? Number(screen_size) : null;
+        console.log("numericScreenSize", numericScreenSize);
+        console.log("type", typeof (numericScreenSize));
+        const numericReleaseYear = release_year ? Number(release_year) : null;
+        const lowerCaseSeries = series ? series.toLowerCase() : null;
+        let networkfi = network ? network : null;
+
+
+        if (series && series_num && numericScreenSize && numericReleaseYear && processor_model || series && series_num && numericScreenSize && numericReleaseYear && networkfi) {
+          
+            console.log('top',series_num);
             // Fetch the data from the API
             const response = await fetch('https://sellmac.com/wp-json/custom/v1/ram_storage_pricing');
             const data = await response.json();
@@ -65,7 +69,7 @@ DataController.index = async (req, res) => {
                 const storageData = data.ram_and_storage.storage || {};
                 const lowerCaseSeriesNum = series_num.toLowerCase();
                 const result = { ram: [], storage: [] };
-        
+
                 // Process RAM data
                 if (ramData[lowerCaseSeriesNum]) {
                     const ramPricing = ramData[lowerCaseSeriesNum][numericReleaseYear];
@@ -75,7 +79,7 @@ DataController.index = async (req, res) => {
                         return res.status(404).json({ error: `No RAM pricing available for the year ${numericReleaseYear}.` });
                     }
                 }
-        
+
                 // Process Storage data
                 if (storageData[lowerCaseSeriesNum]) {
                     const storagePricing = storageData[lowerCaseSeriesNum][numericReleaseYear];
@@ -106,13 +110,34 @@ DataController.index = async (req, res) => {
                         )
                         GROUP BY order_num;
                     `;
-                    
+
                     // Use the following for the query values
                     values = [series_num, numericScreenSize, numericReleaseYear, networkfi];
+                }else if(series === "Mac"){
+                    console.log('serias_main',series);
+                    queryAlldata = `
+                    SELECT * 
+FROM wp_serial_search AS main
+WHERE series_num = ?  -- Replace '?' with the actual value or parameter
+AND (screen_size = 1 OR screen_size = 0 OR screen_size IS NULL) 
+AND release_year = ?  -- Replace '?' with the actual value or parameter
+AND price = (
+    SELECT MAX(price) 
+    FROM wp_serial_search 
+    WHERE series_num = main.series_num 
+    AND screen_size = main.screen_size 
+    AND release_year = main.release_year
+)
+GROUP BY order_num;`
+
+
+                // Use the following for the query values
+                values = [series_num, numericScreenSize, numericReleaseYear];
+                 
                 }
-                
-                else{
-                queryAlldata = `SELECT * 
+
+                else {
+                    queryAlldata = `SELECT * 
                 FROM wp_serial_search AS main
                 WHERE series_num = ? 
                 AND screen_size = ? 
@@ -127,99 +152,104 @@ DataController.index = async (req, res) => {
                     AND processor_model = main.processor_model
                 )
                 GROUP BY order_num;`;
-                
-                 values = [series_num, numericScreenSize, numericReleaseYear, processor_model];
 
-                }
-        
+                    values = [series_num, numericScreenSize, numericReleaseYear, processor_model];
                 
-        
+                }
+
+
+
                 // First query to get all data related to the series
                 return new Promise((resolve, reject) => {
-                db_con.query(queryAlldata, values, (error, resultsAlldata) => {
-                    if (error) {
-                        console.error('Error executing query: ', error);
-                        return res.status(500).json({ error: 'Internal server error' });
-                    }
-                    console.log('Distinct Processor Models:', resultsAlldata);
-                    console.log(resultsAlldata) 
-        
-                    const deviceDataQuery = `SELECT device_values ,type FROM devices_info WHERE device_name = ?`;
-                const deviceValues = [lowerCaseSeries]; // Correct variable for the query
-        
-                    // Execute the SQL query to get extra device info
-                    db_con.query(deviceDataQuery, deviceValues, (err, resultSeries) => {
-                        if (err) {
-                            console.error("SQL Error:", err.message);
+                    db_con.query(queryAlldata, values, (error, resultsAlldata) => {
+                        if (error) {
+                            console.error('Error executing query: ', error);
                             return res.status(500).json({ error: 'Internal server error' });
                         }
-                        console.log("testing the  resultSeries", resultSeries);
-        
-                        // Parse device_values to convert it from a string to an object
-                        const parsedResultSeries = resultSeries.map(item => {
-                            return {
-                                ...item,
-                                device_values: JSON.parse(item.device_values)
-                                // Ensure device_values can be parsed
-                            };
-                        });
-        
-                        // Return the response with all the data collected
-                        return res.status(200).json({ storage: result, extra_info: parsedResultSeries, product_info: resultsAlldata ,additionalPrices: {
-                            carrier: data.carrier,
-                            condition:data.condition,
-                            accessories_price:data.accessories_price,
-                            battery:data.battery
-                        }
+                        console.log('Distinct Processor Models:', resultsAlldata);
+                        console.log(resultsAlldata)
+                        console.log('dddddddddddddddddddddd');
 
+                        const deviceDataQuery = `SELECT device_values ,type FROM devices_info WHERE device_name = ?`;
+                        const deviceValues = [lowerCaseSeries]; // Correct variable for the query
+
+                        // Execute the SQL query to get extra device info
+                        db_con.query(deviceDataQuery, deviceValues, (err, resultSeries) => {
+                            if (err) {
+                                console.error("SQL Error:", err.message);
+                                return res.status(500).json({ error: 'Internal server error' });
+                            }
+                            console.log("testing the  resultSeries", resultSeries);
+
+                            // Parse device_values to convert it from a string to an object
+                            const parsedResultSeries = resultSeries.map(item => {
+                                return {
+                                    ...item,
+                                    device_values: JSON.parse(item.device_values)
+                                    // Ensure device_values can be parsed
+                                };
+                            });
+
+                            // Return the response with all the data collected
+                            return res.status(200).json({
+                                storage: result, extra_info: parsedResultSeries, product_info: resultsAlldata, additionalPrices: {
+                                    carrier: data.carrier,
+                                    condition: data.condition,
+                                    accessories_price: data.accessories_price,
+                                    battery: data.battery
+                                }
+
+                            });
                         });
                     });
                 });
-            });
-        
-                 // Ensure no further responses are sent after this point
+
+                // Ensure no further responses are sent after this point
             } else {
                 return res.status(500).json({ error: 'Failed to fetch or parse RAM and storage pricing data.' });
             }
         }
 
         // Handle other query cases...
-        if (series && series_num && numericScreenSize && numericReleaseYear || series && series_num && numericScreenSize && networkfi ) {
-            if( series === "Mac" ){
+        if (series && series_num && numericScreenSize && numericReleaseYear || series && series_num && numericScreenSize && networkfi) {
+            if (series === "Mac") {
+                console.log("series_num_1224", series_num)
                 query = `SELECT DISTINCT processor_model 
-                     FROM wp_serial_search 
-                     WHERE series_num = ?  AND release_year = ?  `;
-                  values = [series_num, numericReleaseYear];
-                  return new Promise((resolve, reject) => {
-                db_con.query(query, values, (err, result) => {
-                    if (err) {
-                        return res.status(500).json({ error: err});
-                    }
-        
-                    return res.status(200).json({ status: 200, data: result });
+                            FROM wp_serial_search 
+                            WHERE series_num = ? 
+                            AND release_year = ? 
+                            AND (screen_size = 0 OR screen_size IS NULL or screen_size = 1)
+                            `;
+                values = [series_num, numericReleaseYear];
+                return new Promise((resolve, reject) => {
+                    db_con.query(query, values, (err, result) => {
+                        if (err) {
+                            return res.status(500).json({ error: err });
+                        }
+
+                        return res.status(200).json({ status: 200, data: result });
+                    });
+
                 });
 
-            });
-
-            }else if(series === "iPad"){
+            } else if (series === "iPad") {
                 query = `SELECT DISTINCT network 
                 FROM wp_serial_search 
                 WHERE series_num = ? AND screen_size = ? AND release_year = ? order by network asc  `;
-              values = [series_num, numericScreenSize, numericReleaseYear];
+                values = [series_num, numericScreenSize, numericReleaseYear];
 
             }
-                else{
+            else {
                 query = `SELECT DISTINCT processor_model 
                 FROM wp_serial_search 
                 WHERE series_num = ? AND screen_size = ? AND release_year = ? `;
-              values = [series_num, numericScreenSize, numericReleaseYear];
+                values = [series_num, numericScreenSize, numericReleaseYear];
 
             }
-          
-        } else if (series && series_num && numericScreenSize) {
 
-            if( series === "Mac" ){
-                
+        } else if (series && series_num && numericScreenSize) {
+            
+            if (series === "Mac") {
                 query = `SELECT DISTINCT release_year 
                 FROM wp_serial_search 
                 WHERE series_num = ?  and  release_year >= 2009 order by  release_year Asc`;
@@ -227,106 +257,111 @@ DataController.index = async (req, res) => {
                 return new Promise((resolve, reject) => {
                     db_con.query(query, values, (err, result) => {
                         if (err) {
-                            return res.status(500).json({ error: err});
+                            console.log("result123",result);
+                            return res.status(500).json({ error: err });
                         }
-            
+
                         return res.status(200).json({ status: 200, data: result });
                     });
-    
+
                 });
 
+
             }
-            
+
             query = `SELECT DISTINCT release_year 
                      FROM wp_serial_search 
                      WHERE series_num = ? AND screen_size = ? and  release_year >= 2009 order by  release_year Asc`;
             values = [series_num, numericScreenSize];
 
 
-        } else if (series  && series_num) {
+        } else if (series && series_num) {
             if (series === "iPhone") {
                 try {
 
                     const productData = await getProductDetails(series_num);
                     const response = await fetch('https://sellmac.com/wp-json/custom/v1/ram_storage_pricing');
                     const data = await response.json();
-        
+
                     const seriesNumLowercase = series_num.toLowerCase();
                     console.log("Series number (lowercase):", seriesNumLowercase);
-        
+
                     const storage = data.ram_and_storage.storage;
                     console.log(storage, "Storage data");
-        
+
                     // Check if the storage for the specific model exists
                     if (storage && storage[seriesNumLowercase]) {
                         const modelStorage = storage[seriesNumLowercase];
                         console.log(modelStorage, "Model storage options");
-        
+
                         return res.status(200).json({
                             status: 200,
-                            data:{
+                            data: {
                                 storage: modelStorage,
                                 condition: data.condition,
                                 accessories_price: data.accessories_price,
                                 battery: data.battery,
                                 carrier: data.carrier,
-                                productData:productData
+                                productData: productData
                             }
-                           
+
                         });
                     } else {
-                        return res.status(404).json({ 
-                            statos :400,
-                            error: "Storage options not found for this model." });
+                        return res.status(404).json({
+                            statos: 400,
+                            error: "Storage options not found for this model."
+                        });
                     }
                 } catch (error) {
                     console.error("Error fetching data:", error);
-                    return res.status(500).json({ 
-                        status : 500,
+                    return res.status(500).json({
+                        status: 500,
                         error: "An error occurred while fetching storage data."
-                     });
+                    });
                 }
-            }else if(series === "Mac"){
-                return res.status(200).json({ status: 200, data: [
-                    {
-                        screen_size:0,
-                    }
-                ] });
+            } else if (series === "Mac") {
+                return res.status(200).json({
+                    status: 200, data: [
+                        {
+                            screen_size: 0,
+                        }
+                    ]
+                });
 
             }
-                else {
+            else {
                 const query = `
                     SELECT DISTINCT screen_size 
                     FROM wp_serial_search 
                     WHERE series_num = ? order by screen_size asc`;
-                  const values = [series_num];
-                  db_con.query(query, values, (err, result) => {
+                const values = [series_num];
+                db_con.query(query, values, (err, result) => {
                     if (err) {
-                        return res.status(500).json({ error: err});
+                        return res.status(500).json({ error: err });
                     }
-        
+
                     return res.status(200).json({ status: 200, data: result });
                 });
-        
+
 
                 // Continue with the database query logic...
             }
             return;
         } else if (series) {
 
-            if(series == "iPhone"){
-             // Check if the device exists in the devices_info table
-            const deviceDataQuery = `SELECT type FROM devices_info WHERE device_name = ?`;
-            db_con.query(deviceDataQuery, [series], (err, deviceResult) => {
-                if (err) {
-                    return res.status(500).json({ error: 'Internal server error' });
-                }
+            if (series == "iPhone") {
+                // Check if the device exists in the devices_info table
+                const deviceDataQuery = `SELECT type FROM devices_info WHERE device_name = ?`;
+                db_con.query(deviceDataQuery, [series], (err, deviceResult) => {
+                    if (err) {
+                        return res.status(500).json({ error: 'Internal server error' });
+                    }
 
-                console.log("deviceResult123",)
+                    console.log("deviceResult123",)
 
-                if (deviceResult.length > 0) {
-                    // If device data exists, proceed with the series_num query
-                    const query = `SELECT DISTINCT series_num 
+                    if (deviceResult.length > 0) {
+                        // If device data exists, proceed with the series_num query
+                        const query = `SELECT DISTINCT series_num 
                         FROM wp_serial_search 
                         WHERE 
                             (series_num LIKE 'iPhone %' AND 
@@ -344,96 +379,96 @@ DataController.index = async (req, res) => {
                             series_num;
 
                                             `;
-                    const values = [series];
+                        const values = [series];
 
-                    db_con.query(query, values, (err, result) => {
-                     const filterData = [];
-                    const unwantedSeries = [
-                        "iPhone 5c",
-                        "iPhone 1st Generation",
-                        "iPhone 4S",
-                        "iPhone 3G",
-                        "iPhone 3GS",
-                        "iPhone 5S",
-                        "iPhone 6 Plus"
-                    ];
-                    result.forEach(result1 => {
-                        if (!unwantedSeries.includes(result1.series_num)) {
-                            filterData.push(result1);
-                        }
-                    });
-                        console.log(typeof(result));
-                        if (err) {
-                            return res.status(500).json({ error: 'Internal server error' });
-                        }
+                        db_con.query(query, values, (err, result) => {
+                            const filterData = [];
+                            const unwantedSeries = [
+                                "iPhone 5c",
+                                "iPhone 1st Generation",
+                                "iPhone 4S",
+                                "iPhone 3G",
+                                "iPhone 3GS",
+                                "iPhone 5S",
+                                "iPhone 6 Plus"
+                            ];
+                            result.forEach(result1 => {
+                                if (!unwantedSeries.includes(result1.series_num)) {
+                                    filterData.push(result1);
+                                }
+                            });
+                            console.log(typeof (result));
+                            if (err) {
+                                return res.status(500).json({ error: 'Internal server error' });
+                            }
 
-                        return res.status(200).json({ status: 200, data: filterData  ,type : deviceResult});
-                    });
-                } else {
-                    // If no device data is found
-                    return res.status(404).json({ status: 404, error: 'Device not found' });
-                }
-            });
+                            return res.status(200).json({ status: 200, data: filterData, type: deviceResult });
+                        });
+                    } else {
+                        // If no device data is found
+                        return res.status(404).json({ status: 404, error: 'Device not found' });
+                    }
+                });
 
-            }else if(series === "Watch"){
+            } else if (series === "Watch") {
                 const deviceDataQuery = `SELECT type FROM devices_info WHERE device_name = ?`;
 
-            db_con.query(deviceDataQuery, [series], (err, deviceResult) => {
-                if (err) {
-                    return res.status(500).json({ error: 'Internal server error' });
-                }
+                db_con.query(deviceDataQuery, [series], (err, deviceResult) => {
+                    if (err) {
+                        return res.status(500).json({ error: 'Internal server error' });
+                    }
 
-                console.log("deviceResult123",)
+                    console.log("deviceResult123",)
 
-                if (deviceResult.length > 0) {
-                    // If device data exists, proceed with the series_num query
-                    const query = `SELECT DISTINCT series_num 
+                    if (deviceResult.length > 0) {
+                        // If device data exists, proceed with the series_num query
+                        const query = `SELECT DISTINCT series_num 
                                    FROM wp_serial_search 
                                    WHERE series_num = ?`;
-                    const values = ['Apple Watch'];
+                        const values = ['Apple Watch'];
 
-                    db_con.query(query, values, (err, result) => {
-                        if (err) {
-                            return res.status(500).json({ error: 'Internal server error' });
-                        }
+                        db_con.query(query, values, (err, result) => {
+                            if (err) {
+                                return res.status(500).json({ error: 'Internal server error' });
+                            }
 
-                        return res.status(200).json({ status: 200, data: result  ,type : deviceResult});
-                    });
-                } else {
-                    // If no device data is found
-                    return res.status(404).json({ status: 404, error: 'Device not found' });
-                }
-            });
+                            return res.status(200).json({ status: 200, data: result, type: deviceResult });
+                        });
+                    } else {
+                        // If no device data is found
+                        return res.status(404).json({ status: 404, error: 'Device not found' });
+                    }
+                });
 
-            }else{
+            } else {
                 const deviceDataQuery = `SELECT type FROM devices_info WHERE device_name = ?`;
 
-            db_con.query(deviceDataQuery, [series], (err, deviceResult) => {
-                if (err) {
-                    return res.status(500).json({ error: 'Internal server error' });
-                }
+                db_con.query(deviceDataQuery, [series], (err, deviceResult) => {
+                    if (err) {
+                        return res.status(500).json({ error: 'Internal server error' });
+                    }
 
-                console.log("deviceResult123",)
+                    console.log("deviceResult123",)
 
-                if (deviceResult.length > 0) {
-                    // If device data exists, proceed with the series_num query
-                    const query = `SELECT DISTINCT series_num 
+                    if (deviceResult.length > 0) {
+                        // If device data exists, proceed with the series_num query
+                        const query = `SELECT DISTINCT series_num 
                                    FROM wp_serial_search 
                                    WHERE SUBSTRING_INDEX(series_num, ' ', 1) = ?`;
-                    const values = [series];
+                        const values = [series];
 
-                    db_con.query(query, values, (err, result) => {
-                        if (err) {
-                            return res.status(500).json({ error: 'Internal server error' });
-                        }
+                        db_con.query(query, values, (err, result) => {
+                            if (err) {
+                                return res.status(500).json({ error: 'Internal server error' });
+                            }
 
-                        return res.status(200).json({ status: 200, data: result  ,type : deviceResult});
-                    });
-                } else {
-                    // If no device data is found
-                    return res.status(404).json({ status: 404, error: 'Device not found' });
-                }
-            });
+                            return res.status(200).json({ status: 200, data: result, type: deviceResult });
+                        });
+                    } else {
+                        // If no device data is found
+                        return res.status(404).json({ status: 404, error: 'Device not found' });
+                    }
+                });
 
             }
             return; // Prevent further processing
@@ -452,16 +487,16 @@ DataController.index = async (req, res) => {
         return new Promise((resolve, reject) => {
             db_con.query(query, values, (err, result) => {
                 if (err) {
-                    return res.status(500).json({ error: err});
+                    return res.status(500).json({ error: err });
                 }
-    
+
                 return res.status(200).json({ status: 200, data: result });
             });
 
         });
 
     } catch (err) {
-        return res.status(500).json({ error: err.message});
+        return res.status(500).json({ error: err.message });
     }
 };
 
@@ -471,8 +506,8 @@ const addProduct = async (price, title) => {
         const accessToken = accessTokenUnsoretd[0]['info'];
         const shop = accessTokenUnsoretd[0]['shop'];
         const collectionID = 508644950327;
-       //const collectionID = 482388377915 ; //for live
-        
+        //const collectionID = 482388377915 ; //for live
+
 
         const originalPrice = price;
         const productTitle = title;
@@ -501,7 +536,7 @@ const addProduct = async (price, title) => {
                     ],
                     // Add this field if needed (but not all profiles can be managed via API)
                     shipping_profile_id: 117950513463 // Not supported
-                    
+
                 },
             },
             {
@@ -534,24 +569,24 @@ const addProduct = async (price, title) => {
         );
 
         // 3. Associate the discount with the product
-      /*   await axios.post(
-            `https://${shop}/admin/api/2023-04/variants/${newVariantID}/metafields.json`,
-            {
-                metafield: {
-                    namespace: "discounts",
-                    key: "discount_id",
-                    value: "1472967573815",
-                    value_type: "string",
-                    type: "single_line_text_field" // Specify the type here
-                },
-            },
-            {
-                headers: {
-                    'X-Shopify-Access-Token': accessToken,
-                    'Content-Type': 'application/json',
-                },
-            }
-        ); */
+        /*   await axios.post(
+              `https://${shop}/admin/api/2023-04/variants/${newVariantID}/metafields.json`,
+              {
+                  metafield: {
+                      namespace: "discounts",
+                      key: "discount_id",
+                      value: "1472967573815",
+                      value_type: "string",
+                      type: "single_line_text_field" // Specify the type here
+                  },
+              },
+              {
+                  headers: {
+                      'X-Shopify-Access-Token': accessToken,
+                      'Content-Type': 'application/json',
+                  },
+              }
+          ); */
 
         // Return variant details
         return createProductResponse.data.product.variants[0]; // Return the new variant details
@@ -602,5 +637,5 @@ DataController.price = async (req, res) => {
 
 
 
-export default DataController;  
+export default DataController;
 
