@@ -25,9 +25,8 @@ const Table = ({ data = [], headData = [] }) => {
           {data.length > 0 ? (
             data.map((item, index) => (
               <tr key={index}>
-                  {console.log(item,"sdsa")}
                 <td>{item?.id}</td>
-                <td>{item?.shopify_order_id}</td>
+                <td>{item?.shoipfy_order_id}</td>
                 {/* <td>{item?.device_name}</td>
                 <td>{item?.specialPrice}</td>
                 <td>{item?.device_values}</td>
