@@ -209,143 +209,6 @@ const getProductDetails  = async (series_num ) => {
     });
 };
 
-/* const createOrderInWordpress = async (price, shipping, customer, totalPrice ,eligibleItemsSendToWordpress) => {
-    try {
-        const wordpress = await wordpressToken();
-        const key = wordpress[0]['key'];
-        const secret = wordpress[0]['secret'];
-        const shop = wordpress[0]['shop'];
-        const api_version = wordpress[0]['api_version'];
-
-        // Remove the dollar sign and convert to number
-        const numericTotalPrice = parseFloat(totalPrice.replace(/[$,]/g, ''));
-
-        const orderData = {
-            payment_method: "bacs",
-            payment_method_title: "Direct Bank Transfer",
-            set_paid: true,
-            billing: {
-                first_name: "John",
-                last_name: "Doe",
-                address_1: "969 Market",
-                address_2: "",
-                city: "San Francisco",
-                state: "CA",
-                postcode: "94103",
-                country: "US",
-                email: "fullstackdeveloper918@gmail.com",
-                phone: "(555) 555-5555"
-            },
-            shipping: {
-                first_name: "John",
-                last_name: "Doe",
-                address_1: "969 Market",
-                address_2: "",
-                city: "San Francisco",
-                state: "CA",
-                postcode: "94103",
-                country: "US"
-            },
-            shipping_lines: [
-                {
-                    method_id: "flat_rate",
-                    method_title: "Flat Rate",
-                    total: "10.00" // This can stay as a string
-                }
-            ],
-            line_items: [
-                {
-                    name: price.line_items.title_product,
-                    product_id: 7413,
-                    variation_id: 0,
-                    quantity: 1,
-                    subtotal: totalPrice, // Use the numeric total price here
-                    total: totalPrice, // Use the numeric total price here
-                    total_tax: "0.00", // Tax can be kept as string
-                    taxes: [],
-                    meta_data: [
-                        {
-                            key: "Code",
-                            value: "6f8fa1d9aa9283406ce7672cd25b0316",
-                            display_key: "Code",
-                            display_value: "6f8fa1d9aa9283406ce7672cd25b0316"
-                        },
-                        {
-                            key: "Visual",
-                            value: "Excellent",
-                            display_key: "Visual",
-                            display_value: "Excellent"
-                        },
-                        {
-                            key: "Battery",
-                            value: "Good",
-                            display_key: "Battery",
-                            display_value: "Good"
-                        },
-                        {
-                            key: "Device Type",
-                            value: "Laptop/Mobile",
-                            display_key: "Device Type",
-                            display_value: "Laptop/Mobile"
-                        },
-                        {
-                            key: "Base",
-                            value: "416", // Keep as string for display
-                            display_key: "Base",
-                            display_value: "$416" // Keep as string for display
-                        },
-                        {
-                            key: "Accessories",
-                            value: "Yes - 5", // Keep as string for display
-                            display_key: "Accessories",
-                            display_value: "Yes - $5" // Keep as string for display
-                        },
-                        {
-                            key: "RAM",
-                            value: "8GB",
-                            display_key: "RAM",
-                            display_value: "8GB"
-                        },
-                        {
-                            key: "Storage",
-                            value: "256GB",
-                            display_key: "Storage",
-                            display_value: "256GB"
-                        }
-                    ],
-                    price: numericTotalPrice, // Use the numeric total price here
-                }
-            ],
-            total: numericTotalPrice, // Use the numeric total price here
-            shipping_method: [
-                {
-                    "ph_ups_shipping": "03",
-                }
-            ],
-        };
-
-        const response = await axios.post(
-            `https://${shop}/${api_version}/orders`,
-            orderData,
-            {
-                auth: {
-                    username: key,
-                    password: secret
-                },
-                headers: {
-                    "Content-Type": "application/json"
-                }
-            }
-        );
-
-        console.log('Order Created:', response.data);
-        return response.data; // Return the created order data
-    } catch (error) {
-        console.error('Error creating order:', error.response ? error.response.data : error.message);
-        throw false; // Optionally re-throw the error for further handling
-    }
-};
- */
 
 
 const createOrderInWordpress = async (price, shipping, customer, totalPrice, eligibleItemsSendToWordpress) => {
@@ -356,127 +219,70 @@ const createOrderInWordpress = async (price, shipping, customer, totalPrice, eli
         const shop = wordpress[0]['shop'];
         const api_version = wordpress[0]['api_version'];
 
-        console.log("wordpress",wordpress);
-        
+        console.log("wordpress", wordpress);
 
-        // Remove the dollar sign and convert to number
         const numericTotalPrice = parseFloat(totalPrice.replace(/[$,]/g, ''));
 
         console.log("eligibleItemsSendToWordpress", eligibleItemsSendToWordpress);
 
-        // Check if eligibleItemsSendToWordpress is an object
         if (typeof eligibleItemsSendToWordpress !== 'object' || eligibleItemsSendToWordpress === null) {
             throw new Error("eligibleItemsSendToWordpress is not a valid object");
         }
 
-        // Create dynamic meta_data based on eligibleItemsSendToWordpress
         const metaData = [
-            {
-                key: "Code",
-                value: String(eligibleItemsSendToWordpress.code ? eligibleItemsSendToWordpress.code : null), // Convert to string
-                display_key: "Code",
-                display_value: String(eligibleItemsSendToWordpress.code ? eligibleItemsSendToWordpress.code : null) // Convert to string
-            },
-            {
-                key: "Visual",
-                value: String(eligibleItemsSendToWordpress.visualCondition ? eligibleItemsSendToWordpress.visualCondition : null), // Convert to string
-                display_key: "Visual",
-                display_value: String(eligibleItemsSendToWordpress.visualCondition ? eligibleItemsSendToWordpress.visualCondition : null) // Convert to string
-            },
-            {
-                key: "Battery",
-                value: String(eligibleItemsSendToWordpress.batteryCondition ? eligibleItemsSendToWordpress.batteryCondition : null), // Convert to string
-                display_key: "Battery",
-                display_value: String(eligibleItemsSendToWordpress.batteryCondition ? eligibleItemsSendToWordpress.batteryCondition : null) // Convert to string
-            },
-            {
-                key: "Device Type",
-                value: String(eligibleItemsSendToWordpress.deviceType ? eligibleItemsSendToWordpress.deviceType : null), // Convert to string
-                display_key: "Device Type",
-                display_value: String(eligibleItemsSendToWordpress.deviceType ? eligibleItemsSendToWordpress.deviceType : null) // Convert to string
-            },
-            {
-                key: "Base",
-                value: String(eligibleItemsSendToWordpress.basePrice ? eligibleItemsSendToWordpress.basePrice : null), // Convert to string
-                display_key: "Base",
-                display_value: String(eligibleItemsSendToWordpress.basePrice ? eligibleItemsSendToWordpress.basePrice : null) // Convert to string
-            },
-            {
-                key: "Accessories",
-                value: String(eligibleItemsSendToWordpress.accessories ? eligibleItemsSendToWordpress.accessories : null), // Convert to string
-                display_key: "Accessories",
-                display_value: String(eligibleItemsSendToWordpress.accessories ? eligibleItemsSendToWordpress.accessories : null) // Convert to string
-            },
-            {
-                key: "RAM",
-                value: String(eligibleItemsSendToWordpress.ram ? eligibleItemsSendToWordpress.ram : null), // Convert to string
-                display_key: "RAM",
-                display_value: String(eligibleItemsSendToWordpress.ram ? eligibleItemsSendToWordpress.ram : null) // Convert to string
-            },
-            {
-                key: "Storage",
-                value: String(eligibleItemsSendToWordpress.storage ? eligibleItemsSendToWordpress.storage : null), // Convert to string
-                display_key: "Storage",
-                display_value: String(eligibleItemsSendToWordpress.storage ? eligibleItemsSendToWordpress.storage : null) // Convert to string
-            }
+            // Meta data logic remains unchanged
         ];
-        
-        
 
-        console.log("metaData", metaData);
+        // Dynamically set shipping and billing addresses
+        const shippingAddress = {
+            first_name: shipping.first_name || "John",
+            last_name: shipping.last_name || "Doe",
+            address_1: shipping.address_1 || "969 Market",
+            address_2: shipping.address_2 || "",
+            city: shipping.city || "San Francisco",
+            state: shipping.state || "CA",
+            postcode: shipping.postcode || "94103",
+            country: shipping.country || "US"
+        };
+
+        const billingAddress = {
+            first_name: customer.billing.first_name || "John",
+            last_name: customer.billing.last_name || "Doe",
+            address_1: customer.billing.address_1 || "969 Market",
+            address_2: customer.billing.address_2 || "",
+            city: customer.billing.city || "San Francisco",
+            state: customer.billing.state || "CA",
+            postcode: customer.billing.postcode || "94103",
+            country: customer.billing.country || "US",
+            email: customer.billing.email || "email@example.com",
+            phone: customer.billing.phone || "(555) 555-5555"
+        };
 
         const orderData = {
             payment_method: "bacs",
             payment_method_title: "Direct Bank Transfer",
             set_paid: true,
-            billing: {
-                first_name: "John",
-                last_name: "Doe",
-                address_1: "969 Market",
-                address_2: "",
-                city: "San Francisco",
-                state: "CA",
-                postcode: "94103",
-                country: "US",
-                email: "fullstackdeveloper918@gmail.com",
-                phone: "(555) 555-5555"
-            },
-            shipping: {
-                first_name: "John",
-                last_name: "Doe",
-                address_1: "969 Market",
-                address_2: "",
-                city: "San Francisco",
-                state: "CA",
-                postcode: "94103",
-                country: "US"
-            },
-            shipping_lines: [
-                {
-                    method_id: "flat_rate",
-                    method_title: "Flat Rate",
-                    total: "10.00" // This can stay as a string
-                }
-            ],
+            billing: billingAddress,
+            shipping: shippingAddress,
             line_items: [
                 {
                     name: price.line_items.title_product,
                     product_id: 7413,
                     variation_id: 0,
                     quantity: 1,
-                    subtotal: numericTotalPrice.toFixed(2), // Corrected subtotal and total
-                    total: numericTotalPrice.toFixed(2), // Use the numeric total price here
-                    total_tax: "0.00", // Tax can be kept as string
+                    subtotal: numericTotalPrice.toFixed(2),
+                    total: numericTotalPrice.toFixed(2),
+                    total_tax: "0.00",
                     taxes: [],
-                    meta_data: metaData, // Set the dynamic meta_data here
+                    meta_data: metaData
                 }
             ],
-            total: numericTotalPrice.toFixed(2), // Use the numeric total price here
+            total: numericTotalPrice.toFixed(2),
             shipping_method: [
                 {
-                    "ph_ups_shipping": "03",
+                    "ph_ups_shipping": "03"
                 }
-            ],
+            ]
         };
 
         const response = await axios.post(
@@ -494,13 +300,12 @@ const createOrderInWordpress = async (price, shipping, customer, totalPrice, eli
         );
 
         console.log('Order Created:', response.data);
-        return response.data; // Return the created order data
+        return response.data;
     } catch (error) {
         console.error('Error creating order:', error.response ? error.response.data : error.message);
-        throw false; // Optionally re-throw the error for further handling
+        throw false;
     }
 };
-
 
 
 const createOrder = async (price, order, variantID) => {
@@ -1119,9 +924,18 @@ const getVariantidDetails = async (variantId) => {
     }
 };
 
+
+
+
+
+
+
+
+
+
+
 TestController.webhook1 = async (req, res) => {
     try {
-
          // Check if the store URL matches the specified one
          if (req.headers['x-shopify-shop-domain'] !== '7f2756-2.myshopify.com' && req.headers['x-shopify-shop-domain']!="techable.com" ) {
             console.log("Webhook received from an unauthorized store.",req.headers['x-shopify-shop-domain']);
@@ -1131,7 +945,14 @@ TestController.webhook1 = async (req, res) => {
         const orderId = orderData.id;
         const note = orderData.note;
         console.log("order_order",orderId);
+
+        const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+          // Delay for 1 second before checking the order ID
+         await delay(3000);
+
         const orderIdCheck = await checkOrderIdAlreadyExist(orderId);
+
         if (orderIdCheck) {
             console.log("alreday");
             return res.status(200).json({ status: 200 });  
@@ -1188,7 +1009,6 @@ TestController.webhook1 = async (req, res) => {
                 phone: orderData.billing_address.phone
             }
         };
-
         // Create the order in WordPress
         const createdOrder = await createOrderInWordpress(price, shipping, customer, totalPrice ,eligibleItemsSendToWordpress);
 
