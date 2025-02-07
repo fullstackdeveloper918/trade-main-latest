@@ -478,7 +478,7 @@ GROUP BY order_num;`
                      img_url, 
                      COUNT(*) AS count 
                  FROM wp_serial_search
-                 WHERE SUBSTRING_INDEX(series_num, ' ', 1) IN ('MacBook', 'iMac', 'iPad', 'iPhone', 'Mac', 'Watch','Apple vision pro')
+                 WHERE SUBSTRING_INDEX(series_num, ' ', 1) IN ('MacBook', 'iMac', 'iPad', 'iPhone', 'Mac', 'Watch','Apple')
                  GROUP BY series 
                  ORDER BY count DESC`;
         }
