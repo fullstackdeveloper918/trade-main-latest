@@ -229,9 +229,12 @@ const createOrderInWordpress = async (price, shipping, customer, totalPrice, eli
             throw new Error("eligibleItemsSendToWordpress is not a valid object");
         }
 
-        const metaData = [
-            // Meta data logic remains unchanged
-        ];
+        const metaData = Object.entries(eligibleItemsSendToWordpress)
+        .filter(([key, value]) => value !== undefined && value !== '$undefined')
+        .map(([key, value]) => ({
+          key,
+          value
+      }));
 
         // Dynamically set shipping and billing addresses
         const shippingAddress = {
@@ -927,13 +930,6 @@ const getVariantidDetails = async (variantId) => {
 
 
 
-
-
-
-
-
-
-
 TestController.webhook1 = async (req, res) => {
     try {
          // Check if the store URL matches the specified one
@@ -942,6 +938,7 @@ TestController.webhook1 = async (req, res) => {
             return res.status(403).json({ status: 403, message: 'Unauthorized store.' });
         }
         const orderData = req.body;
+        console.log("checkOrder",orderData,)
         const orderId = orderData.id;
         const note = orderData.note;
         console.log("order_order",orderId);
