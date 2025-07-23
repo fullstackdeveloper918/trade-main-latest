@@ -229,12 +229,26 @@ const createOrderInWordpress = async (price, shipping, customer, totalPrice, eli
             throw new Error("eligibleItemsSendToWordpress is not a valid object");
         }
 
-        const metaData = Object.entries(eligibleItemsSendToWordpress)
-        .filter(([key, value]) => value !== undefined && value !== '$undefined')
-        .map(([key, value]) => ({
-          key,
-          value
-      }));
+      //   const metaData = Object.entries(eligibleItemsSendToWordpress)
+      //   .filter(([key, value]) => value !== undefined && value !== '$undefined')
+      //   .map(([key, value]) => ({
+      //     key,
+      //     value
+      // }));
+
+
+const metaData = [
+  ...Object.entries(eligibleItemsSendToWordpress)
+    .filter(([key, value]) => value !== undefined && value !== '$undefined')
+    .map(([key, value]) => ({
+      key,
+      value
+    })),
+  {
+    key: 'tradeInType', // or 'Trade-in Type' if that's what your WordPress plugin expects
+    value: 'Cart Drawer'
+  }
+];
 
         // Dynamically set shipping and billing addresses
         const shippingAddress = {
