@@ -222,33 +222,33 @@ const createOrderInWordpress = async (price, shipping, customer, totalPrice, eli
         console.log("wordpress", wordpress);
 
         const numericTotalPrice = parseFloat(totalPrice.replace(/[$,]/g, ''));
-
         console.log("eligibleItemsSendToWordpress", eligibleItemsSendToWordpress);
 
-        if (typeof eligibleItemsSendToWordpress !== 'object' || eligibleItemsSendToWordpress === null) {
-            throw new Error("eligibleItemsSendToWordpress is not a valid object");
-        }
-
-      //   const metaData = Object.entries(eligibleItemsSendToWordpress)
-      //   .filter(([key, value]) => value !== undefined && value !== '$undefined')
-      //   .map(([key, value]) => ({
-      //     key,
-      //     value
-      // }));
-
-
-const metaData = [
-  ...Object.entries(eligibleItemsSendToWordpress)
-    .filter(([key, value]) => value !== undefined && value !== '$undefined')
-    .map(([key, value]) => ({
-      key,
-      value
-    })),
-  {
-    key: 'tradeInType', // or 'Trade-in Type' if that's what your WordPress plugin expects
-    value: 'Cart Drawer'
-  }
-];
+        // Prepare line_items for WooCommerce order
+        const line_items = Array.isArray(price.line_items)
+            ? price.line_items.map((item, idx) => {
+                const metaData = [
+                  ...Object.entries(item.meta_data || {})
+                    .filter(([key, value]) => value !== undefined && value !== '$undefined')
+                    .map(([key, value]) => ({ key, value })),
+                  {
+                    key: 'tradeInType',
+                    value: 'Cart Drawer'
+                  }
+                ];
+                return {
+                    name: item.title_product,
+                    product_id: 7413, // You may want to map product_id dynamically
+                    variation_id: 0,
+                    quantity: item.quantity || 1,
+                    subtotal: (parseFloat(item.totalPrice || 0)).toFixed(2),
+                    total: (parseFloat(item.totalPrice || 0)).toFixed(2),
+                    total_tax: "0.00",
+                    taxes: [],
+                    meta_data: metaData
+                };
+            })
+            : [];
 
         // Dynamically set shipping and billing addresses
         const shippingAddress = {
@@ -281,19 +281,7 @@ const metaData = [
             set_paid: true,
             billing: billingAddress,
             shipping: shippingAddress,
-            line_items: [
-                {
-                    name: price.line_items.title_product,
-                    product_id: 7413,
-                    variation_id: 0,
-                    quantity: 1,
-                    subtotal: numericTotalPrice.toFixed(2),
-                    total: numericTotalPrice.toFixed(2),
-                    total_tax: "0.00",
-                    taxes: [],
-                    meta_data: metaData
-                }
-            ],
+            line_items: line_items,
             total: numericTotalPrice.toFixed(2),
             shipping_method: [
                 {
@@ -824,7 +812,6 @@ const addProduct = async (price, title) => {
     }
 };
 const checkEligibility = async (note) => {
-    // Check if the note is empty
     if (!note || note.trim() === '') {
         return {
             status: 200,
@@ -833,79 +820,67 @@ const checkEligibility = async (note) => {
         };
     }
 
-    // Convert the note into an array of lines
     const lines = note.split('\n');
+    const products = [];
+    let currentProduct = {};
 
-    // Initialize variables to hold Product ID, Affiliate Code, Total Base Price, RAM, and Storage
-    let productTitle  = null;
-    let code = null;
-    let sellable = null;
-    let imageUrl = null;
-    let storage = null;
-    let totalPrice  = null;
-    let visualCondition = null;
-    let batteryCondition = null;
-    let ram = null;
-    let deviceType = null;
-    let basePrice =null ;
-    let accessoroes = null ;
-   
+    const flushProduct = () => {
+        // Only flush if product has a title and code (or other required fields)
+        if (currentProduct && Object.keys(currentProduct).length && currentProduct.productTitle && currentProduct.code) {
+            products.push({ ...currentProduct });
+        }
+    };
 
-    // Loop through lines to find the relevant data
     lines.forEach(line => {
         if (line.includes('Product Title:')) {
-            productTitle = line.split(':')[1].trim(); // Extract the Product ID
+            flushProduct();
+            currentProduct = { productTitle: line.split(':')[1].trim() };
         } else if (line.includes('Code:')) {
-            code = line.split(':')[1].trim(); // Extract the Affiliate Code
+            currentProduct.code = line.split(':')[1].trim();
         } else if (line.includes('Sellable:')) {
-            sellable = line.split(':')[1].trim(); // Extract the Total Base Price
+            currentProduct.sellable = line.split(':')[1].trim();
         } else if (line.includes('Image URL:')) {
-            imageUrl = line.split(':')[1].trim(); // Extract the RAM
-        } else if (line.includes('Visual Condition:')) {
-            visualCondition = line.split(':')[1].trim(); // Extract the Storage
-        }else if (line.includes('Battery Condition: ')) {
-            batteryCondition = line.split(':')[1].trim(); // Extract the Storage
-        }else if (line.includes('Device Type:')) {
-            deviceType = line.split(':')[1].trim(); // Extract the Storage
-        }else if (line.includes('Total Price:')) {
-            totalPrice = line.split(':')[1].trim(); // Extract the Storage
-        }else if (line.includes('Base Price: ')) {
-            basePrice = line.split(':')[1].trim(); // Extract the Storage
-        }else if (line.includes('Accessories:')) {
-            accessoroes = line.split(':')[1].trim(); // Extract the Storage
-        }else if (line.includes('RAM: ')) {
-            ram = line.split(':')[1].trim(); // Extract the Storage
-        }else if (line.includes('Storage:')) {
-            storage = line.split(':')[1].trim(); // Extract the Storage
+            // If the URL is on the same line
+            let url = line.substring(line.indexOf(':') + 1).trim();
+            if (!url) {
+                // If empty, check the next line
+                const nextLineIndex = lines.indexOf(line) + 1;
+                if (nextLineIndex < lines.length) {
+                    url = lines[nextLineIndex].trim();
+                }
+            }
+            currentProduct.imageUrl = url;
+        }else if (line.includes('Visual Condition:')) {
+            currentProduct.visualCondition = line.split(':')[1].trim();
+        } else if (line.includes('Battery Condition:')) {
+            currentProduct.batteryCondition = line.split(':')[1].trim();
+        } else if (line.includes('Device Type:')) {
+            currentProduct.deviceType = line.split(':')[1].trim();
+        } else if (line.includes('Total Price:')) {
+            currentProduct.totalPrice = line.split(':')[1].trim();
+        } else if (line.includes('Base Price')) {
+            currentProduct.basePrice = line.split(':')[1].trim();
+        } else if (line.includes('Accessories:')) {
+            currentProduct.accessoroes = line.split(':')[1].trim();
+        } else if (line.includes('RAM:')) {
+            currentProduct.ram = line.split(':')[1].trim();
+        } else if (line.includes('Storage:')) {
+            currentProduct.storage = line.split(':')[1].trim();
         }
     });
+    flushProduct(); // Push the last product
 
-    // Check if Product ID and Affiliate Code are valid
-    if (sellable && sellable == 1) {
-        // Return an object with the relevant information
+    if (products.length > 0) {
         return {
             status: 200,
             message: true,
-            details: {
-     productTitle , 
-     code ,
-     sellable,
-     imageUrl,
-     storage,
-     totalPrice  ,
-     visualCondition ,
-     batteryCondition,
-     ram ,
-    deviceType ,
-     basePrice ,
- accessoroes ,
-            }
+            details: products
         };
     } else {
         return {
             status: 200,
             message: false,
-            details: 'No eligibility due to missing Product ID or Affiliate Code.'
+            details: 'No eligible products found.'
         };
     }
 };
@@ -959,8 +934,8 @@ TestController.webhook1 = async (req, res) => {
 
         const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-          // Delay for 1 second before checking the order ID
-         await delay(3000);
+        // Delay for 3 seconds before checking the order ID
+        await delay(3000);
 
         const orderIdCheck = await checkOrderIdAlreadyExist(orderId);
 
@@ -968,30 +943,38 @@ TestController.webhook1 = async (req, res) => {
             console.log("alreday");
             return res.status(200).json({ status: 200 });  
         }
-          
 
-     const checkeligibleItems =  await checkEligibility(note)
-     if(checkeligibleItems.message ==false){
-        console.log("false message");
-        return res.status(200).json({ status: 200 });
-     }
+        const checkeligibleItems =  await checkEligibility(note)
+        if(checkeligibleItems.message == false || !Array.isArray(checkeligibleItems.details) || checkeligibleItems.details.length === 0){
+            console.log("false message or no products");
+            return res.status(200).json({ status: 200 });
+        }
 
-        // Check if any line item matches the productVariantId
-        const eligibleItems = checkeligibleItems ;
-        const eligibleItemsSendToWordpress = checkeligibleItems.details ;
-
-        console.log('eligibleItems',eligibleItems);
-        console.log(eligibleItems.details.productTitle,"productTitle")
-        // Calculate the total price for eligible items
-        const totalPrice = eligibleItems.details.totalPrice;
-        
-
-        // Prepare data for creating an order in WordPress
-        const price = {
-            line_items: {
+        // Prepare line_items for all products with robust price parsing
+        const line_items = checkeligibleItems.details.map(product => {
+            // Use regex to strip non-numeric except decimal
+            const parsedPrice = parseFloat((product.totalPrice || '0').replace(/[^\d.]/g, ''));
+            return {
                 quantity: 1,
-                title_product:eligibleItems.details.productTitle,
-            }
+                title_product: product.productTitle,
+                totalPrice: parsedPrice.toFixed(2),
+                meta_data: product // send all product info for meta_data
+            };
+        });
+
+        // Calculate total price for all products
+        const totalPrice = line_items.reduce((sum, item) => {
+            const price = parseFloat(item.totalPrice);
+            return sum + (isNaN(price) ? 0 : price);
+        }, 0).toFixed(2);
+
+        // Debug logs
+        console.log('Parsed products:', checkeligibleItems.details);
+        console.log('Line items being sent to WordPress:', line_items);
+        console.log('Order total being sent to WordPress:', totalPrice);
+
+        const price = {
+            line_items
         };
 
         const shipping = {
@@ -1021,7 +1004,7 @@ TestController.webhook1 = async (req, res) => {
             }
         };
         // Create the order in WordPress
-        const createdOrder = await createOrderInWordpress(price, shipping, customer, totalPrice ,eligibleItemsSendToWordpress);
+        const createdOrder = await createOrderInWordpress(price, shipping, customer, totalPrice, checkeligibleItems.details);
 
         if(createdOrder){
             console.log("createdOrder",createdOrder);
