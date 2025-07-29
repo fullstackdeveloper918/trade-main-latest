@@ -866,6 +866,12 @@ const checkEligibility = async (note) => {
             currentProduct.ram = line.split(':')[1].trim();
         } else if (line.includes('Storage:')) {
             currentProduct.storage = line.split(':')[1].trim();
+        }else if(line.includes('functional')){
+            if (line.split(':')[1].trim() == '100functional') {
+                currentProduct.functional = 'Full Functionality';
+            } else (line.split(':')[1].trim() == 'fucntionalissues') {
+                currentProduct.functional = 'Has Issues';
+            }
         }
     });
     flushProduct(); // Push the last product
