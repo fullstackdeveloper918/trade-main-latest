@@ -869,7 +869,7 @@ const checkEligibility = async (note) => {
         }else if(line.includes('functional')){
             if (line.split(':')[1].trim() == '100functional') {
                 currentProduct.functional = 'Full Functionality';
-            } else (line.split(':')[1].trim() == 'fucntionalissues') {
+            } else if (line.split(':')[1].trim() == 'fucntionalissues') {
                 currentProduct.functional = 'Has Issues';
             }
         }
